@@ -14,18 +14,18 @@ Invisibility: Since the 8th bit only changes the color value by 1 (e.g., from 25
 
 Extraction: The decoder reads the LSB of each pixel sequentially and reconstructs the binary string back into readable text until it hits the special "terminator" string (###).
 
-Features
+> Features
 -> Zero Distortion: Hide data without affecting the image quality or aesthetics.
 -> Pure JavaScript: No heavy libraries or backend required. Works entirely on the client side using HTML5 Canvas API.
 -> Secure Handling: Uses a custom terminator signature to ensure data integrity during extraction.
 -> User-Friendly UI: Modern, dark-themed "Hacker" aesthetic for an immersive experience.
 
-Tech Stack
+> Tech Stack
 -> Frontend: HTML5, CSS3 (Custom Properties & Grid)
 -> Logic: Vanilla JavaScript (ES6+)
 -> Processing: Canvas API for direct pixel manipulation
 
-📖 How to Use
+> How to Use
 Encode:
 -> Upload any .png image (Lossless formats work best).
 -> Type your secret message in the input box.
@@ -37,5 +37,5 @@ Decode:
 -> Click "Reveal Message".
 -> Your hidden secret will appear magically!
 
-👨‍💻 About the Developer
+> About the Developer
 I am a 1st-year Engineering Student passionate about Cybersecurity, Image Processing, and Web Technologies. This project was built to explore how data can be manipulated at the bit level within digital media.
