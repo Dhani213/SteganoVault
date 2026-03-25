@@ -33,6 +33,7 @@ Extraction: The decoder reads the LSB of each pixel sequentially and reconstruct
 
 
 > How to Use
+
 Encode:
 -> Upload any .png image (Lossless formats work best).
 
