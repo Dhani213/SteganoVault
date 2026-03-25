@@ -1,8 +1,10 @@
 # SteganoVault | Hide Secrets in Pixels
+
 -> SteganoVault is a lightweight, browser-based cybersecurity tool that implements Least Significant Bit (LSB) Steganography. It allows users to embed secret text messages within image pixels such that the change is invisible to the human eye.
 
  How it Works (The Technical Logic)
--> Digital images are made of pixels, and each pixel is composed of RGBA (Red, Green, Blue, Alpha) channels. Each channel is represented by 8 bits (0-255).
+ 
+> Digital images are made of pixels, and each pixel is composed of RGBA (Red, Green, Blue, Alpha) channels. Each channel is represented by 8 bits (0-255).
 
 Binary Conversion: The secret message is first converted into an 8-bit binary string.
 
