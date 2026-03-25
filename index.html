@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SteganoVault | Hide Secrets in Pixels</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base Styling: Dark Theme for that 'Hacker' aesthetic */
+        :root {
+            --accent: #00ff41; /* Classic Matrix Green */
+            --bg: #0a0a0a;
+            --card: #1a1a1a;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 { color: var(--accent); letter-spacing: 2px; text-shadow: 0 0 10px var(--accent); }
+
+        /* Grid Layout for Encode and Decode panels */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .panel {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            transition: 0.3s;
+        }
+
+        /* Interactive hover effect for a premium feel */
+        .panel:hover { 
+            border-color: var(--accent); 
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); 
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            background: #000;
+            border: 1px solid #444;
+            color: var(--accent);
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 5px;
+            resize: none;
+            box-sizing: border-box;
+        }
+
+        input[type="file"] { margin-bottom: 15px; color: #888; }
+
+        button {
+            background: var(--accent);
+            color: black;
+            border: none;
+            padding: 12px 24px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        button:hover { transform: translateY(-2px); filter: brightness(1.2); }
+
+        /* Hidden Canvas: All the heavy pixel lifting happens here behind the scenes */
+        canvas { display: none; } 
+
+        #result-img {
+            max-width: 100%;
+            margin-top: 20px;
+            border: 1px dashed var(--accent);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status { font-size: 0.8rem; color: #888; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>[ STEGANO-VAULT ]</h1>
+        <p>Hide encrypted messages inside any image pixel-by-pixel.</p>
+
+        <div class="grid">
+            <div class="panel">
+                <h3>🔒 ENCODE</h3>
+                <input type="file" id="upload-encode" accept="image/*">
+                <textarea id="secret-msg" placeholder="Type your secret message here..."></textarea>
+                <button onclick="encodeMessage()">GENERATE SECRET IMAGE</button>
+                <div class="status" id="encode-status">Ready to hide.</div>
+                <img id="result-img">
+            </div>
+
+            <div class="panel">
+                <h3>🔓 DECODE</h3>
+                <input type="file" id="upload-decode" accept="image/*">
+                <button onclick="decodeMessage()" style="background: #333; color: white;">REVEAL MESSAGE</button>
+                <textarea id="revealed-msg" placeholder="Revealed message will appear here..." readonly></textarea>
+                <div class="status" id="decode-status">Upload image to read.</div>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Getting access to the Canvas API
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        /**
+         * ENCODE LOGIC:
+         * 1. Convert text to binary (0s and 1s)
+         * 2. Modify the 'Least Significant Bit' (LSB) of each pixel's Red channel
+         * 3. Regenerate the image with hidden data
+         */
+        function encodeMessage() {
+            const fileInput = document.getElementById('upload-encode');
+            const text = document.getElementById('secret-msg').value;
+            const status = document.getElementById('encode-status');
+
+            if (!fileInput.files[0] || !text) return alert("Please select an image and enter a message!");
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // Match canvas dimensions to the uploaded image
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    // Pull raw pixel data (RGBA) from the canvas
+                    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    let pixels = imgData.data;
+
+                    // Adding '###' as a terminator so the decoder knows where the text ends
+                    let msg = text + "###"; 
+                    let binaryMsg = "";
+                    
+                    // Converting string to 8-bit binary representation
+                    for (let i = 0; i < msg.length; i++) {
+                        let bin = msg[i].charCodeAt(0).toString(2).padStart(8, '0');
+                        binaryMsg += bin;
+                    }
+
+                    // Safety check: Ensure the image has enough pixels for the message
+                    if (binaryMsg.length > pixels.length * 0.75) {
+                        return alert("Message is way too long for this specific image!");
+                    }
+
+                    // THE CORE HACK: LSB Manipulation
+                    for (let i = 0; i < binaryMsg.length; i++) {
+                        /**
+                         * pixels[i * 4] targets the RED channel of each pixel.
+                         * we perform a bitwise AND with 0xFE (11111110) to clear the last bit,
+                         * then perform a bitwise OR to set it to our binary bit (0 or 1).
+                         */
+                        pixels[i * 4] = (pixels[i * 4] & 0xFE) | parseInt(binaryMsg[i]);
+                    }
+
+                    // Put the 'tampered' pixels back onto the canvas
+                    ctx.putImageData(imgData, 0, 0);
+                    
+                    // Display the new image to the user
+                    const resultImg = document.getElementById('result-img');
+                    resultImg.src = canvas.toDataURL();
+                    resultImg.style.display = 'block';
+                    
+                    status.innerText = "SUCCESS! Right-click to Save the secret image.";
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+
+        /**
+         * DECODE LOGIC:
+         * 1. Read every pixel's Red channel
+         * 2. Extract the last bit
+         * 3. Reconstruct the binary into text until '###' is found
+         */
+        function decodeMessage() {
+            const fileInput = document.getElementById('upload-decode');
+            const revealedArea = document.getElementById('revealed-msg');
+            const status = document.getElementById('decode-status');
+
+            if (!fileInput.files[0]) return alert("Upload an encoded image first!");
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imgData.data;
+
+                    let binaryMsg = "";
+                    let decodedText = "";
+
+                    // Scanning pixels for hidden bits
+                    for (let i = 0; i < pixels.length / 4; i++) {
+                        // Extracting the last bit using bitwise AND (& 1)
+                        binaryMsg += (pixels[i * 4] & 1).toString();
+                        
+                        // Every 8 bits, we form a character
+                        if (binaryMsg.length === 8) {
+                            let char = String.fromCharCode(parseInt(binaryMsg, 2));
+                            decodedText += char;
+                            binaryMsg = "";
+                            
+                            // Exit loop early if we hit our terminator signature
+                            if (decodedText.endsWith("###")) {
+                                revealedArea.value = decodedText.replace("###", "");
+                                status.innerText = "ACCESS GRANTED: Secret revealed.";
+                                return;
+                            }
+                        }
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+    </script>
+</body>
+</html>
